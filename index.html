@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>3D Heart AR</title>
+    <script type="module" src="heart-3d.glb.glb"></script>
+    <style>
+      body {
+        margin: 0;
+        background: #000;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        color: white;
+        font-family: Arial, sans-serif;
+      }
+
+      #info {
+        position: absolute;
+        bottom: 20px;
+        background: rgba(0, 0, 0, 0.6);
+        padding: 10px 15px;
+        border-radius: 10px;
+        display: none;
+      }
+
+      #permission {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.9);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        z-index: 10;
+      }
+
+      #permission button {
+        margin-top: 15px;
+        padding: 10px 20px;
+        font-size: 16px;
+        background-color: #d62828;
+        border: none;
+        border-radius: 8px;
+        color: white;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="permission">
+      <h2>Allow Camera Access</h2>
+      <p>To view the 3D heart in AR, please allow camera access.</p>
+      <button id="allow-btn">Allow Camera</button>
+    </div>
+
+    <model-viewer
+      id="viewer"
+      src="heart-3d.glb"
+      alt="Human Heart"
+      ar
+      ar-modes="webxr scene-viewer quick-look"
+      camera-controls
+      auto-rotate
+      exposure="1"
+      style="width: 100%; height: 100vh; display: none;"
+    ></model-viewer>
+
+    <div id="info">The heart pumps blood throughout the body.</div>
+
+    <script>
+      const viewer = document.getElementById("viewer");
+      const info = document.getElementById("info");
+      const permission = document.getElementById("permission");
+      const allowBtn = document.getElementById("allow-btn");
+
+      // Ask for camera access when button clicked
+      allowBtn.addEventListener("click", async () => {
+        try {
+          await navigator.mediaDevices.getUserMedia({ video: true });
+          permission.style.display = "none";
+          viewer.style.display = "block";
+        } catch (err) {
+          alert("Camera access denied. Please enable it to use AR.");
+        }
+      });
+
+      // Show text + voice when tapped
+      viewer.addEventListener("click", () => {
+        info.style.display = "block";
+        const utter = new SpeechSynthesisUtterance(
+          "The heart pumps blood throughout the body."
+        );
+        speechSynthesis.speak(utter);
+      });
+    </script>
+  </body>
+</html>
