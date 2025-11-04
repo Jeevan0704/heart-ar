@@ -61,17 +61,21 @@
       <button id="allow-btn">Allow Camera</button>
     </div>
 
-    <model-viewer
-      id="viewer"
-      src="heart-3d.glb"
-      alt="Human Heart"
-      ar
-      ar-modes="webxr scene-viewer quick-look"
-      camera-controls
-      auto-rotate
-      exposure="1"
-      style="width: 100%; height: 100vh; display: none;"
-    ></model-viewer>
+    
+     <model-viewer
+  id="viewer"
+  src="heart-3d.glb"
+  alt="Human Heart"
+  ar
+  ar-modes="webxr scene-viewer quick-look"
+  camera-controls
+  auto-rotate
+  shadow-intensity="1"
+  exposure="1.2"
+  environment-image="neutral"
+  style="width: 100%; height: 100vh; display: none; background-color: #111;"
+></model-viewer>
+
 
     <div id="info">The heart pumps blood throughout the body.</div>
 
@@ -103,4 +107,5 @@
     </script>
   </body>
 </html>
+
 
