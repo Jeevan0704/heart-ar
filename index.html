@@ -1,350 +1,103 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Heart WebAR — Tap for info</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Human Heart AR</title>
 
-<!-- three.js modules -->
-<script type="module">
-/* This file is an ES module; browser must support modules. */
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
-import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
-import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+  <!-- Google Model Viewer -->
+  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 
-const modelUrl = './heart-3d.glb'; // keep file in same folder
-const iosUSDZ = './heart-3d.usdz'; // optional for iOS Quick Look
-
-/* ---------- Basic page UI ---------- */
-const style = document.createElement('style');
-style.textContent = `
-  html,body{height:100%;margin:0;background:linear-gradient(135deg,#071032,#0b3a53);font-family:Inter,system-ui;color:#fff}
-  #root{width:100%;height:100%;position:relative;overflow:hidden}
-  #topBar{position:absolute;left:12px;top:12px;z-index:20}
-  #title{font-weight:600;font-size:18px;margin:0}
-  #subtitle{font-size:13px;margin:0;opacity:.85}
-  #placeHint{position:absolute;left:50%;transform:translateX(-50%);bottom:18px;background:rgba(0,0,0,.6);padding:8px 12px;border-radius:10px;z-index:20;display:none}
-  #infoPopup{position:absolute;left:50%;transform:translateX(-50%);bottom:70px;background:rgba(0,0,0,.8);padding:12px 16px;border-radius:10px;z-index:20;display:none;max-width:90%;text-align:center}
-  #controls{position:absolute;right:12px;top:12px;z-index:20;display:flex;gap:8px}
-  .btn{background:#ff6b6b;border:none;padding:8px 10px;border-radius:8px;color:#fff;font-weight:600;cursor:pointer}
-  #enter-ar{background:#3bd671}
-  #message{position:absolute;left:12px;bottom:12px;color:#ddd;font-size:13px;z-index:20}
-  canvas{display:block}
-  #fallbackBox{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:10;text-align:center;display:none}
-  #fallbackModel{width:340px;height:60vh;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.5)}
-`;
-document.head.appendChild(style);
-
-const root = document.createElement('div');
-root.id = 'root';
-document.body.appendChild(root);
-
-const topBar = document.createElement('div'); topBar.id = 'topBar';
-topBar.innerHTML = `<p id="title">Human Heart — WebAR</p><p id="subtitle">Tap on the screen to place. Tap the heart for info.</p>`;
-root.appendChild(topBar);
-
-const controls = document.createElement('div'); controls.id = 'controls';
-controls.innerHTML = `
-  <button id="enter-ar" class="btn">Start AR</button>
-  <button id="quicklook" class="btn">iOS Quick Look</button>
-`;
-root.appendChild(controls);
-
-const placeHint = document.createElement('div'); placeHint.id = 'placeHint'; placeHint.innerText = 'Tap a flat surface to place the heart';
-root.appendChild(placeHint);
-
-const infoPopup = document.createElement('div'); infoPopup.id = 'infoPopup';
-root.appendChild(infoPopup);
-
-const message = document.createElement('div'); message.id = 'message';
-root.appendChild(message);
-
-const fallbackBox = document.createElement('div'); fallbackBox.id = 'fallbackBox';
-fallbackBox.innerHTML = `<model-viewer id="fallbackModel" src="${modelUrl}" alt="Heart" camera-controls auto-rotate style="display:block"></model-viewer>`;
-document.body.appendChild(fallbackBox);
-
-/* ---------- three.js / WebXR setup ---------- */
-let camera, scene, renderer;
-let reticle = null;
-let controller = null;
-let heart = null;
-let hitTestSource = null;
-let localReferenceSpace = null;
-let placed = false;
-
-async function initXR() {
-  // scene + renderer
-  scene = new THREE.Scene();
-  camera = new THREE.PerspectiveCamera(70, innerWidth/innerHeight, 0.01, 20);
-
-  renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
-  renderer.setPixelRatio(window.devicePixelRatio);
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.outputEncoding = THREE.sRGBEncoding;
-  renderer.xr.enabled = true;
-  root.appendChild(renderer.domElement);
-
-  // lighting
-  const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
-  scene.add(hemi);
-  const dir = new THREE.DirectionalLight(0xffffff, 0.6);
-  dir.position.set(0.5, 2, 1);
-  scene.add(dir);
-
-  // reticle (ring) to show hit test placement
-  const ringGeom = new THREE.RingGeometry(0.06, 0.08, 32).rotateX(-Math.PI/2);
-  const ringMat = new THREE.MeshBasicMaterial({color:0x00ffcc});
-  reticle = new THREE.Mesh(ringGeom, ringMat);
-  reticle.matrixAutoUpdate = false;
-  reticle.visible = false;
-  scene.add(reticle);
-
-  // load model (but don't add to scene until placed)
-  const loader = new GLTFLoader();
-  message.textContent = 'Loading 3D model...';
-  loader.load(modelUrl, (gltf) => {
-    heart = gltf.scene;
-    // initial orientation/scale (tweak if needed)
-    heart.scale.setScalar(0.08); // default small scale; tweak later if needed
-    heart.rotation.y = Math.PI; // face correct way
-    heart.visible = false;
-    scene.add(heart);
-    message.textContent = '';
-  }, (progress) => {
-    // optional progress feedback
-    if (progress && progress.loaded && progress.total) {
-      const pct = Math.round((progress.loaded/progress.total)*100);
-      message.textContent = `Loading model: ${pct}%`;
+  <style>
+    body {
+      margin: 0;
+      background-color: #111;
+      color: white;
+      font-family: 'Poppins', sans-serif;
+      overflow: hidden;
     }
-  }, (err) => {
-    console.error('GLTF load error', err);
-    message.textContent = 'Model failed to load.';
-  });
 
-  // controller for select events
-  controller = renderer.xr.getController(0);
-  controller.addEventListener('select', onSelect);
-  scene.add(controller);
-
-  window.addEventListener('resize', onWindowResize);
-}
-
-/* ---------- Hit-test / Session start ---------- */
-async function startARSession() {
-  if (!navigator.xr) {
-    message.textContent = 'WebXR not available in this browser.';
-    fallbackBox.style.display = 'block';
-    return;
-  }
-
-  try {
-    const session = await navigator.xr.requestSession('immersive-ar', { requiredFeatures:['hit-test','dom-overlay'], domOverlay: { root: document.body } });
-    renderer.xr.setSession(session);
-    const refSpace = await session.requestReferenceSpace('local');
-    localReferenceSpace = refSpace;
-
-    // request hit test source using viewer space
-    const viewerSpace = await session.requestReferenceSpace('viewer');
-    hitTestSource = await session.requestHitTestSource({ space: viewerSpace });
-
-    // render loop
-    session.requestAnimationFrame(onXRFrame);
-    placeHint.style.display = 'block';
-    document.getElementById('enter-ar').style.display = 'none';
-  } catch (err) {
-    console.error('Failed to start XR session', err);
-    message.textContent = 'AR session failed. Opening fallback viewer.';
-    fallbackBox.style.display = 'block';
-  }
-}
-
-/* ---------- XR frame loop ---------- */
-function onXRFrame(time, frame) {
-  const session = frame.session;
-  session.requestAnimationFrame(onXRFrame);
-
-  const pose = frame.getViewerPose(localReferenceSpace);
-  if (hitTestSource && frame) {
-    const hitTestResults = frame.getHitTestResults(hitTestSource);
-    if (hitTestResults.length > 0) {
-      const hit = hitTestResults[0];
-      const hitPose = hit.getPose(localReferenceSpace);
-      reticle.visible = true;
-      reticle.matrix.fromArray(hitPose.transform.matrix);
-    } else {
-      reticle.visible = false;
+    model-viewer {
+      width: 100%;
+      height: 100vh;
     }
-  }
 
-  renderer.render(scene, camera);
-}
-
-/* ---------- User interaction ---------- */
-function onSelect() {
-  // If reticle visible, place the heart at reticle position
-  if (reticle && reticle.visible && heart) {
-    heart.position.setFromMatrixPosition(reticle.matrix);
-    // ensure heart faces user
-    const camPos = new THREE.Vector3(); renderer.xr.getCamera(camera).getWorldPosition(camPos);
-    heart.lookAt(camPos.x, heart.position.y, camPos.z);
-    heart.visible = true;
-    placed = true;
-    placeHint.style.display = 'none';
-    message.textContent = 'Heart placed. Tap it to learn more.';
-  } else if (placed && heart) {
-    // if already placed: interpret select (tap) as "tap the heart" — show info if intersected
-    // We don't have event target, so simply show info popup and speak.
-    showInfo("The heart pumps blood throughout the body.");
-  }
-}
-
-/* Raycast from screen tap to detect if user tapped on model (for non-XR fallback) */
-function screenTapToModel(x, y) {
-  if (!heart || !renderer) return false;
-  const mouse = new THREE.Vector2((x / window.innerWidth) * 2 - 1, - (y / window.innerHeight) * 2 + 1);
-  const cameraForRay = renderer.xr.isPresenting ? renderer.xr.getCamera(camera) : camera;
-  const raycaster = new THREE.Raycaster();
-  raycaster.setFromCamera(mouse, cameraForRay);
-  const intersects = raycaster.intersectObject(heart, true);
-  return intersects.length > 0;
-}
-
-function showInfo(text) {
-  infoPopup.innerText = text;
-  infoPopup.style.display = 'block';
-  speak(text);
-  setTimeout(()=>{ infoPopup.style.display = 'none'; }, 4000);
-}
-
-function speak(text) {
-  if (!('speechSynthesis' in window)) return;
-  const u = new SpeechSynthesisUtterance(text);
-  u.rate = 1;
-  window.speechSynthesis.cancel();
-  window.speechSynthesis.speak(u);
-}
-
-/* ---------- DOM tap handlers (for non-XR / fallback) ---------- */
-function addPageTapHandlers() {
-  let touchStartDist = 0;
-  let initialScale = 1;
-
-  // detect taps for fallback (when not in XR)
-  window.addEventListener('click', (ev) => {
-    // if heart visible and click intersects model, show info
-    // compute screen coordinates
-    const x = ev.clientX, y = ev.clientY;
-    if (heart && heart.visible && screenTapToModel(x,y)) {
-      showInfo("The heart pumps blood throughout the body.");
+    #infoBox {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.6);
+      padding: 12px 18px;
+      border-radius: 10px;
+      font-size: 14px;
+      text-align: center;
+      max-width: 80%;
+      display: none;
     }
-  });
 
-  // simple pinch-to-scale for fallback (two-touch)
-  window.addEventListener('touchstart', (ev) => {
-    if (ev.touches.length === 2 && heart) {
-      const dx = ev.touches[0].pageX - ev.touches[1].pageX;
-      const dy = ev.touches[0].pageY - ev.touches[1].pageY;
-      touchStartDist = Math.hypot(dx, dy);
-      initialScale = heart.scale.x;
+    #title {
+      position: absolute;
+      top: 15px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 20px;
+      font-weight: 600;
+      text-align: center;
     }
-  });
-  window.addEventListener('touchmove', (ev) => {
-    if (ev.touches.length === 2 && heart) {
-      const dx = ev.touches[0].pageX - ev.touches[1].pageX;
-      const dy = ev.touches[0].pageY - ev.touches[1].pageY;
-      const dist = Math.hypot(dx, dy);
-      const scaleFactor = dist / touchStartDist;
-      const newScale = Math.min(2, Math.max(0.02, initialScale * scaleFactor));
-      heart.scale.setScalar(newScale);
-    }
-  });
-}
-
-/* ---------- Utility: iOS Quick Look fallback ---------- */
-function openQuickLook() {
-  // Create a temporary link pointing to usdz and set rel="ar"
-  const a = document.createElement('a');
-  a.rel = 'ar';
-  a.href = iosUSDZ;
-  const img = document.createElement('img');
-  img.src = iosUSDZ;
-  a.appendChild(img);
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(()=>document.body.removeChild(a), 1000);
-}
-
-/* ---------- window resize ---------- */
-function onWindowResize() {
-  if (camera) camera.aspect = window.innerWidth / window.innerHeight, camera.updateProjectionMatrix();
-  if (renderer) renderer.setSize(window.innerWidth, window.innerHeight);
-}
-
-/* ---------- wire up UI ---------- */
-document.getElementById('enter-ar').addEventListener('click', async () => {
-  // initialize XR if not already initialized
-  if (!renderer) {
-    await initXR();
-    addPageTapHandlers();
-  }
-  startARSession();
-});
-
-document.getElementById('quicklook').addEventListener('click', () => {
-  // Open Quick Look for iOS devices (works on Safari)
-  openQuickLook();
-});
-
-/* ---------- initialize a lightweight scene for 3D preview on non-AR browsers ---------- */
-(async function initPreview() {
-  // create minimal preview scene and controls so user sees model before AR
-  const previewCanvas = document.createElement('canvas');
-  previewCanvas.style.position = 'absolute';
-  previewCanvas.style.left = '50%';
-  previewCanvas.style.top = '12%';
-  previewCanvas.style.transform = 'translateX(-50%)';
-  previewCanvas.style.width = '85%';
-  previewCanvas.style.maxWidth = '600px';
-  previewCanvas.style.height = '60vh';
-  previewCanvas.style.borderRadius = '14px';
-  previewCanvas.style.boxShadow = '0 10px 30px rgba(0,0,0,.4)';
-  previewCanvas.style.zIndex = '5';
-
-  // create a small three.js renderer for preview
-  const previewRenderer = new THREE.WebGLRenderer({ antialias:true, alpha:true, canvas:previewCanvas });
-  previewRenderer.setSize(previewCanvas.clientWidth, previewCanvas.clientHeight);
-  previewRenderer.setPixelRatio(window.devicePixelRatio);
-  document.getElementById('root').appendChild(previewCanvas);
-
-  const previewScene = new THREE.Scene();
-  const previewCamera = new THREE.PerspectiveCamera(50, previewCanvas.clientWidth / previewCanvas.clientHeight, 0.01, 20);
-  previewCamera.position.set(0, 0.5, 1.4);
-  const pl = new THREE.HemisphereLight(0xffffff, 0x080820, 1.2); previewScene.add(pl);
-  const dl = new THREE.DirectionalLight(0xffffff, 0.6); dl.position.set(0.6, 1, 0.6); previewScene.add(dl);
-
-  const loader = new GLTFLoader();
-  loader.load(modelUrl, (gltf) => {
-    const pModel = gltf.scene;
-    pModel.scale.setScalar(0.08);
-    pModel.rotation.y = Math.PI;
-    previewScene.add(pModel);
-    (function animate() {
-      pModel.rotation.y += 0.005;
-      previewRenderer.render(previewScene, previewCamera);
-      requestAnimationFrame(animate);
-    })();
-  }, null, (err)=> {
-    console.warn('Preview load failed', err);
-  });
-
-  // set simple message for AR availability
-  const hasXR = !!navigator.xr;
-  message.textContent = hasXR ? 'Tap "Start AR" to place the heart in your space' : 'WebXR not available — use Quick Look (iOS) or model viewer.';
-})();
-</script>
-
+  </style>
 </head>
 <body>
-  <!-- root created and populated by script -->
+  <div id="title">🫀 Human Heart AR Experience</div>
+
+  <model-viewer
+    id="viewer"
+    src="heart-3d.glb"
+    ios-src="heart-3d.usdz"
+    ar
+    ar-modes="webxr quick-look"
+    camera-controls
+    auto-rotate
+    shadow-intensity="1"
+    exposure="1.2"
+    style="width: 100%; height: 100vh;"
+    alt="3D model of a human heart"
+  ></model-viewer>
+
+  <div id="infoBox"></div>
+
+  <script>
+    const viewer = document.getElementById('viewer');
+    const infoBox = document.getElementById('infoBox');
+
+    const facts = [
+      "The heart pumps around 2,000 gallons of blood every day.",
+      "It beats about 100,000 times per day.",
+      "The left side of your heart pumps blood to your whole body.",
+      "The heart has four chambers: two atria and two ventricles.",
+      "Your heart is roughly the size of your fist."
+    ];
+
+    let factIndex = 0;
+
+    viewer.addEventListener('click', () => {
+      infoBox.style.display = 'block';
+      infoBox.innerText = facts[factIndex];
+      speak(facts[factIndex]);
+      factIndex = (factIndex + 1) % facts.length;
+    });
+
+    function speak(text) {
+      const msg = new SpeechSynthesisUtterance(text);
+      msg.rate = 1.05;
+      msg.pitch = 1.0;
+      msg.lang = 'en-US';
+      window.speechSynthesis.speak(msg);
+    }
+
+    viewer.addEventListener('load', () => {
+      console.log("✅ Model loaded successfully!");
+    });
+  </script>
 </body>
 </html>
