@@ -1,100 +1,75 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1) width=device-width, initial-scale=1" />
-  <title>Human Heart AR</title>
-  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
-  <style>
-    body {
-      margin: 0;
-      background-color: #111;
-      color: white;
-      font-family: sans-serif;
-      overflow: hidden;
-    }
-    model-viewer {
-      width: 100%;
-      height: 100vh;
-      background-color: #222;
-    }
-    #infoBox {
-      position: absolute;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(0,0,0,0.75);
-      padding: 12px 18px;
-      border-radius: 10px;
-      font-size: 14px;
-      max-width: 80%;
-      display: none;
-      text-align: center;
-    }
-    #log {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      background: rgba(0,0,0,0.6);
-      padding: 6px 10px;
-      font-size: 12px;
-      border-radius: 5px;
-    }
-  </style>
-</head>
-<body>
-  <model-viewer
-    id="viewer"
-    src="heart-3d.glb"
-    ios-src="heart-3d.usdz"
-    alt="3D model of human heart"
-    ar
-    camera-controls
-    auto-rotate
-    exposure="1.2"
-    shadow-intensity="1"
-    environment-image="neutral"
-    style="width: 100%; height: 100vh;"
-    scale="0.15 0.15 0.15"
-  ></model-viewer>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Heart Debug</title>
+    <script type="module" src="https://unpkg.com/three@0.155.0/build/three.module.js"></script>
+    <script type="module" src="https://unpkg.com/three@0.155.0/examples/jsm/loaders/GLTFLoader.js"></script>
+    <style>
+      body { margin: 0; overflow: hidden; background: #111; }
+      #log {
+        position: absolute; top: 10px; left: 10px;
+        color: #0f0; font-family: monospace; background: rgba(0,0,0,0.6);
+        padding: 5px 8px; border-radius: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="log">Loading...</div>
+    <script type="module">
+      import * as THREE from 'https://unpkg.com/three@0.155.0/build/three.module.js';
+      import { GLTFLoader } from 'https://unpkg.com/three@0.155.0/examples/jsm/loaders/GLTFLoader.js';
 
-  <div id="infoBox"></div>
-  <div id="log">Loading model...</div>
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document.body.appendChild(renderer.domElement);
 
-  <script>
-    const viewer = document.getElementById('viewer');
-    const infoBox = document.getElementById('infoBox');
-    const log = document.getElementById('log');
+      const log = document.getElementById('log');
+      const light = new THREE.DirectionalLight(0xffffff, 2);
+      light.position.set(5, 10, 5);
+      scene.add(light);
+      scene.add(new THREE.AmbientLight(0x404040, 3));
 
-    const facts = [
-      "The heart pumps about 7,500 liters (≈ 2,000 gallons) of blood daily.",
-      "It beats roughly 100,000 times per day.",
-      "It has four chambers: two atria and two ventricles.",
-      "The left ventricle pumps blood to all parts of your body.",
-      "The heart is roughly the size of your fist."
-    ];
-    let factIndex = 0;
+      // 🟥 add a red cube as a reference
+      const cubeGeometry = new THREE.BoxGeometry(1, 1, 1);
+      const cubeMaterial = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+      const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+      scene.add(cube);
 
-    viewer.addEventListener('progress', (e) => {
-      const pct = Math.round(e.detail.totalProgress * 100);
-      log.textContent = `Loading: ${pct}%`;
-    });
-    viewer.addEventListener('load', () => {
-      log.textContent = '✅ Model loaded';
-    });
-    viewer.addEventListener('error', (e) => {
-      log.textContent = '❌ Error: ' + (e.detail?.message || 'unknown');
-      console.error('ModelViewer error:', e);
-    });
-    viewer.addEventListener('click', () => {
-      infoBox.style.display = 'block';
-      infoBox.innerText = facts[factIndex];
-      const utter = new SpeechSynthesisUtterance(facts[factIndex]);
-      utter.rate = 1;
-      utter.pitch = 1;
-      window.speechSynthesis.speak(utter);
-      factIndex = (factIndex + 1) % facts.length;
-    });
-  </script>
-</body>
+      camera.position.z = 5;
+
+      const loader = new GLTFLoader();
+      loader.load('heart-3d.glb',
+        (gltf) => {
+          const model = gltf.scene;
+          model.scale.set(0.01, 0.01, 0.01); // start small
+          scene.add(model);
+          log.textContent = '✅ Model loaded (look for heart near red cube)';
+        },
+        (xhr) => {
+          log.textContent = `Loading... ${(xhr.loaded / xhr.total * 100).toFixed(0)}%`;
+        },
+        (error) => {
+          console.error(error);
+          log.textContent = '❌ Error loading model';
+        }
+      );
+
+      window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+
+      function animate() {
+        requestAnimationFrame(animate);
+        cube.rotation.y += 0.01;
+        renderer.render(scene, camera);
+      }
+      animate();
+    </script>
+  </body>
 </html>
