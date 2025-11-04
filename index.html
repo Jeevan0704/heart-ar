@@ -1,100 +1,66 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Human Heart AR</title>
-    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
-    <style>
-      body {
-        margin: 0;
-        background: linear-gradient(145deg, #e63946, #1d3557);
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-        color: white;
-        font-family: 'Poppins', sans-serif;
-      }
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Human Heart AR</title>
+  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      background-color: #111;
+      overflow: hidden;
+      color: white;
+      font-family: sans-serif;
+    }
+    #log {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      background: rgba(0,0,0,0.6);
+      padding: 8px;
+      font-size: 12px;
+      border-radius: 5px;
+      max-width: 90%;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+ <model-viewer
+  id="viewer"
+  src="heart-3d.glb"
+  ios-src="heart-3d.usdz"
+  alt="Human Heart"
+  ar
+  camera-controls
+  auto-rotate
+  shadow-intensity="1"
+  exposure="1.3"
+  environment-image="neutral"
+  style="width: 100%; height: 100vh;"
+></model-viewer>
 
-      h1 {
-        margin-bottom: 10px;
-        font-size: 2rem;
-        letter-spacing: 1px;
-      }
 
-      p {
-        margin-top: 0;
-        font-size: 1rem;
-        opacity: 0.8;
-      }
+  <div id="log">Loading model...</div>
 
-      model-viewer {
-        width: 100%;
-        height: 70vh;
-        max-width: 600px;
-        border-radius: 20px;
-        box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
-      }
+  <script>
+    const viewer = document.getElementById('viewer');
+    const log = document.getElementById('log');
 
-      #infoBox {
-        position: absolute;
-        bottom: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: rgba(0, 0, 0, 0.75);
-        padding: 12px 20px;
-        border-radius: 10px;
-        font-size: 0.95rem;
-        display: none;
-      }
-    </style>
-  </head>
+    viewer.addEventListener('load', () => {
+      log.textContent = '✅ Model loaded successfully!';
+    });
 
-  <body>
-    <h1>Explore the Human Heart ❤️</h1>
-    <p>Tap “AR” below to view it in your real world!</p>
+    viewer.addEventListener('error', (e) => {
+      log.textContent = '❌ Error loading model: ' + e.detail?.message;
+      console.error('ModelViewer error:', e);
+    });
 
-    <model-viewer
-      id="viewer"
-      src="heart-3d.glb"
-      ios-src="heart-3d.usdz"
-      alt="Human Heart"
-      ar
-      camera-controls
-      auto-rotate
-      shadow-intensity="1"
-      exposure="1.3"
-      style="--poster-color: transparent;"
-      ar-scale="fixed"
-      ar-modes="scene-viewer quick-look webxr"
-      scale="0.08 0.08 0.08"
-      environment-image="neutral"
-    ></model-viewer>
-
-    <div id="infoBox"></div>
-
-    <script>
-      const viewer = document.getElementById('viewer');
-      const infoBox = document.getElementById('infoBox');
-
-      // Fun facts about the heart
-      const facts = [
-        "The heart beats about 100,000 times every day.",
-        "It pumps nearly 7,500 liters of blood daily.",
-        "The human heart has four chambers: two atria and two ventricles.",
-        "Your heartbeat sound comes from the valves opening and closing.",
-        "A healthy heart keeps oxygen flowing throughout your body!"
-      ];
-
-      viewer.addEventListener('click', () => {
-        const fact = facts[Math.floor(Math.random() * facts.length)];
-        infoBox.textContent = fact;
-        infoBox.style.display = 'block';
-        setTimeout(() => (infoBox.style.display = 'none'), 4000);
-      });
-    </script>
-  </body>
+    viewer.addEventListener('progress', (e) => {
+      const progress = Math.round(e.detail.totalProgress * 100);
+      log.textContent = `Loading... ${progress}%`;
+    });
+  </script>
+</body>
 </html>
-
