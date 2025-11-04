@@ -2,101 +2,98 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1) width=device-width, initial-scale=1" />
   <title>Human Heart AR</title>
-
-  <!-- Google Model Viewer -->
   <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
-
   <style>
     body {
       margin: 0;
       background-color: #111;
       color: white;
-      font-family: 'Poppins', sans-serif;
+      font-family: sans-serif;
       overflow: hidden;
     }
-
     model-viewer {
       width: 100%;
       height: 100vh;
+      background-color: #222;
     }
-
     #infoBox {
       position: absolute;
       bottom: 20px;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(0, 0, 0, 0.6);
+      background: rgba(0,0,0,0.75);
       padding: 12px 18px;
       border-radius: 10px;
       font-size: 14px;
-      text-align: center;
       max-width: 80%;
       display: none;
-    }
-
-    #title {
-      position: absolute;
-      top: 15px;
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: 20px;
-      font-weight: 600;
       text-align: center;
+    }
+    #log {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(0,0,0,0.6);
+      padding: 6px 10px;
+      font-size: 12px;
+      border-radius: 5px;
     }
   </style>
 </head>
 <body>
-  <div id="title">🫀 Human Heart AR Experience</div>
-
   <model-viewer
     id="viewer"
     src="heart-3d.glb"
     ios-src="heart-3d.usdz"
+    alt="3D model of human heart"
     ar
-    ar-modes="webxr quick-look"
     camera-controls
     auto-rotate
-    shadow-intensity="1"
     exposure="1.2"
+    shadow-intensity="1"
+    environment-image="neutral"
     style="width: 100%; height: 100vh;"
-    alt="3D model of a human heart"
+    scale="0.15 0.15 0.15"
   ></model-viewer>
 
   <div id="infoBox"></div>
+  <div id="log">Loading model...</div>
 
   <script>
     const viewer = document.getElementById('viewer');
     const infoBox = document.getElementById('infoBox');
+    const log = document.getElementById('log');
 
     const facts = [
-      "The heart pumps around 2,000 gallons of blood every day.",
-      "It beats about 100,000 times per day.",
-      "The left side of your heart pumps blood to your whole body.",
-      "The heart has four chambers: two atria and two ventricles.",
-      "Your heart is roughly the size of your fist."
+      "The heart pumps about 7,500 liters (≈ 2,000 gallons) of blood daily.",
+      "It beats roughly 100,000 times per day.",
+      "It has four chambers: two atria and two ventricles.",
+      "The left ventricle pumps blood to all parts of your body.",
+      "The heart is roughly the size of your fist."
     ];
-
     let factIndex = 0;
 
+    viewer.addEventListener('progress', (e) => {
+      const pct = Math.round(e.detail.totalProgress * 100);
+      log.textContent = `Loading: ${pct}%`;
+    });
+    viewer.addEventListener('load', () => {
+      log.textContent = '✅ Model loaded';
+    });
+    viewer.addEventListener('error', (e) => {
+      log.textContent = '❌ Error: ' + (e.detail?.message || 'unknown');
+      console.error('ModelViewer error:', e);
+    });
     viewer.addEventListener('click', () => {
       infoBox.style.display = 'block';
       infoBox.innerText = facts[factIndex];
-      speak(facts[factIndex]);
+      const utter = new SpeechSynthesisUtterance(facts[factIndex]);
+      utter.rate = 1;
+      utter.pitch = 1;
+      window.speechSynthesis.speak(utter);
       factIndex = (factIndex + 1) % facts.length;
-    });
-
-    function speak(text) {
-      const msg = new SpeechSynthesisUtterance(text);
-      msg.rate = 1.05;
-      msg.pitch = 1.0;
-      msg.lang = 'en-US';
-      window.speechSynthesis.speak(msg);
-    }
-
-    viewer.addEventListener('load', () => {
-      console.log("✅ Model loaded successfully!");
     });
   </script>
 </body>
