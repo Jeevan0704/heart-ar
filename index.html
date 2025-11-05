@@ -1,124 +1,106 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Human Heart AR</title>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Human Heart AR</title>
+  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      background-color: #111;
+      overflow: hidden;
+      color: white;
+      font-family: "Poppins", sans-serif;
+    }
+    #viewer {
+      width: 100%;
+      height: 100vh;
+    }
+    #controls {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.7);
+      padding: 10px 20px;
+      border-radius: 15px;
+      display: flex;
+      gap: 10px;
+      box-shadow: 0 0 10px rgba(255,255,255,0.1);
+    }
+    button {
+      background: #ff004c;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 12px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: 0.3s;
+    }
+    button:hover {
+      background: #ff3369;
+    }
+    #log {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(0,0,0,0.5);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
 
-    <!-- ✅ Import Three.js + GLTF Loader -->
-    <script type="module">
-      import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
-      import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
+  <model-viewer
+    id="viewer"
+    src="heart-3d.glb"
+    ios-src="heart-3d.usdz"
+    alt="Human Heart"
+    ar
+    camera-controls
+    auto-rotate
+    shadow-intensity="1"
+    exposure="1.3"
+    environment-image="neutral"
+    scale="0.4 0.4 0.4"
+  ></model-viewer>
 
-      let camera, scene, renderer, heart;
+  <div id="controls">
+    <button onclick="setScale(0.2)">Small</button>
+    <button onclick="setScale(0.4)">Medium</button>
+    <button onclick="setScale(0.7)">Large</button>
+  </div>
 
-      async function init() {
-        // ✅ Create renderer with transparency (camera background visible)
-        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(renderer.domElement);
+  <div id="log">Loading model...</div>
 
-        // ✅ Create camera
-        camera = new THREE.PerspectiveCamera(
-          70,
-          window.innerWidth / window.innerHeight,
-          0.01,
-          100
-        );
+  <script>
+    const viewer = document.getElementById('viewer');
+    const log = document.getElementById('log');
 
-        // ✅ Create scene
-        scene = new THREE.Scene();
-        const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
-        scene.add(light);
+    viewer.addEventListener('load', () => {
+      log.textContent = '✅ Model loaded successfully!';
+    });
 
-        // ✅ Add text overlay
-        const loadingText = document.createElement("div");
-        loadingText.style.position = "absolute";
-        loadingText.style.top = "10px";
-        loadingText.style.left = "10px";
-        loadingText.style.color = "#00ff00";
-        loadingText.style.fontFamily = "monospace";
-        loadingText.style.fontSize = "14px";
-        loadingText.textContent = "Loading...";
-        document.body.appendChild(loadingText);
+    viewer.addEventListener('error', (e) => {
+      log.textContent = '❌ Error loading model: ' + e.detail?.message;
+      console.error('ModelViewer error:', e);
+    });
 
-        // ✅ Load the GLB heart model
-        const loader = new GLTFLoader();
-        loader.load(
-          "heart-3d.glb",
-          (gltf) => {
-            heart = gltf.scene;
-            heart.scale.set(0.08, 0.08, 0.08); // smaller model
-            heart.position.set(0, -0.2, -1);
-            scene.add(heart);
-            loadingText.textContent = "✅ Model loaded!";
-          },
-          (xhr) => {
-            loadingText.textContent = `Loading... ${Math.round(
-              (xhr.loaded / xhr.total) * 100
-            )}%`;
-          },
-          (error) => {
-            loadingText.textContent = "❌ Error loading model!";
-            console.error(error);
-          }
-        );
+    viewer.addEventListener('progress', (e) => {
+      const progress = Math.round(e.detail.totalProgress * 100);
+      log.textContent = `Loading... ${progress}%`;
+    });
 
-        // ✅ Set up background as camera feed
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({
-            video: true,
-          });
-          const video = document.createElement("video");
-          video.srcObject = stream;
-          video.play();
+    // 🔧 Resize controls
+    function setScale(factor) {
+      viewer.setAttribute('scale', `${factor} ${factor} ${factor}`);
+      log.textContent = `🔍 Scale set to ${factor}`;
+    }
+  </script>
 
-          const videoTexture = new THREE.VideoTexture(video);
-          const background = new THREE.MeshBasicMaterial({ map: videoTexture });
-          const plane = new THREE.Mesh(
-            new THREE.PlaneGeometry(2, 2),
-            background
-          );
-          plane.material.depthTest = false;
-          plane.material.depthWrite = false;
-
-          const bgScene = new THREE.Scene();
-          const bgCamera = new THREE.Camera();
-          bgScene.add(plane);
-
-          // ✅ Animation loop (renders camera feed + 3D model)
-          function animate() {
-            requestAnimationLoop(animate);
-            renderer.autoClear = false;
-            renderer.clear();
-            renderer.render(bgScene, bgCamera);
-            renderer.render(scene, camera);
-          }
-
-          function requestAnimationLoop(fn) {
-            if (typeof requestAnimationFrame !== "undefined")
-              requestAnimationFrame(fn);
-            else setTimeout(fn, 16);
-          }
-
-          animate();
-        } catch (err) {
-          alert("Camera access denied or not supported.");
-          console.error(err);
-        }
-      }
-
-      window.addEventListener("load", init);
-    </script>
-
-    <style>
-      body {
-        margin: 0;
-        overflow: hidden;
-        background-color: #000;
-      }
-    </style>
-  </head>
-
-  <body></body>
+</body>
 </html>
