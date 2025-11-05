@@ -2,74 +2,123 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Heart Debug</title>
-    <script type="module" src="https://unpkg.com/three@0.155.0/build/three.module.js"></script>
-    <script type="module" src="https://unpkg.com/three@0.155.0/examples/jsm/loaders/GLTFLoader.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Human Heart AR</title>
+
+    <!-- ✅ Import Three.js + GLTF Loader -->
+    <script type="module">
+      import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
+      import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
+
+      let camera, scene, renderer, heart;
+
+      async function init() {
+        // ✅ Create renderer with transparency (camera background visible)
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // ✅ Create camera
+        camera = new THREE.PerspectiveCamera(
+          70,
+          window.innerWidth / window.innerHeight,
+          0.01,
+          100
+        );
+
+        // ✅ Create scene
+        scene = new THREE.Scene();
+        const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
+        scene.add(light);
+
+        // ✅ Add text overlay
+        const loadingText = document.createElement("div");
+        loadingText.style.position = "absolute";
+        loadingText.style.top = "10px";
+        loadingText.style.left = "10px";
+        loadingText.style.color = "#00ff00";
+        loadingText.style.fontFamily = "monospace";
+        loadingText.style.fontSize = "14px";
+        loadingText.textContent = "Loading...";
+        document.body.appendChild(loadingText);
+
+        // ✅ Load the GLB heart model
+        const loader = new GLTFLoader();
+        loader.load(
+          "heart-3d.glb",
+          (gltf) => {
+            heart = gltf.scene;
+            heart.scale.set(0.08, 0.08, 0.08); // smaller model
+            heart.position.set(0, -0.2, -1);
+            scene.add(heart);
+            loadingText.textContent = "✅ Model loaded!";
+          },
+          (xhr) => {
+            loadingText.textContent = `Loading... ${Math.round(
+              (xhr.loaded / xhr.total) * 100
+            )}%`;
+          },
+          (error) => {
+            loadingText.textContent = "❌ Error loading model!";
+            console.error(error);
+          }
+        );
+
+        // ✅ Set up background as camera feed
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+          });
+          const video = document.createElement("video");
+          video.srcObject = stream;
+          video.play();
+
+          const videoTexture = new THREE.VideoTexture(video);
+          const background = new THREE.MeshBasicMaterial({ map: videoTexture });
+          const plane = new THREE.Mesh(
+            new THREE.PlaneGeometry(2, 2),
+            background
+          );
+          plane.material.depthTest = false;
+          plane.material.depthWrite = false;
+
+          const bgScene = new THREE.Scene();
+          const bgCamera = new THREE.Camera();
+          bgScene.add(plane);
+
+          // ✅ Animation loop (renders camera feed + 3D model)
+          function animate() {
+            requestAnimationLoop(animate);
+            renderer.autoClear = false;
+            renderer.clear();
+            renderer.render(bgScene, bgCamera);
+            renderer.render(scene, camera);
+          }
+
+          function requestAnimationLoop(fn) {
+            if (typeof requestAnimationFrame !== "undefined")
+              requestAnimationFrame(fn);
+            else setTimeout(fn, 16);
+          }
+
+          animate();
+        } catch (err) {
+          alert("Camera access denied or not supported.");
+          console.error(err);
+        }
+      }
+
+      window.addEventListener("load", init);
+    </script>
+
     <style>
-      body { margin: 0; overflow: hidden; background: #111; }
-      #log {
-        position: absolute; top: 10px; left: 10px;
-        color: #0f0; font-family: monospace; background: rgba(0,0,0,0.6);
-        padding: 5px 8px; border-radius: 5px;
+      body {
+        margin: 0;
+        overflow: hidden;
+        background-color: #000;
       }
     </style>
   </head>
-  <body>
-    <div id="log">Loading...</div>
-    <script type="module">
-      import * as THREE from 'https://unpkg.com/three@0.155.0/build/three.module.js';
-      import { GLTFLoader } from 'https://unpkg.com/three@0.155.0/examples/jsm/loaders/GLTFLoader.js';
 
-      const scene = new THREE.Scene();
-      const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-      const renderer = new THREE.WebGLRenderer({ antialias: true });
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      document.body.appendChild(renderer.domElement);
-
-      const log = document.getElementById('log');
-      const light = new THREE.DirectionalLight(0xffffff, 2);
-      light.position.set(5, 10, 5);
-      scene.add(light);
-      scene.add(new THREE.AmbientLight(0x404040, 3));
-
-      // 🟥 add a red cube as a reference
-      const cubeGeometry = new THREE.BoxGeometry(1, 1, 1);
-      const cubeMaterial = new THREE.MeshStandardMaterial({ color: 0xff0000 });
-      const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
-      scene.add(cube);
-
-      camera.position.z = 5;
-
-      const loader = new GLTFLoader();
-      loader.load('heart-3d.glb',
-        (gltf) => {
-          const model = gltf.scene;
-          model.scale.set(0.01, 0.01, 0.01); // start small
-          scene.add(model);
-          log.textContent = '✅ Model loaded (look for heart near red cube)';
-        },
-        (xhr) => {
-          log.textContent = `Loading... ${(xhr.loaded / xhr.total * 100).toFixed(0)}%`;
-        },
-        (error) => {
-          console.error(error);
-          log.textContent = '❌ Error loading model';
-        }
-      );
-
-      window.addEventListener('resize', () => {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-      });
-
-      function animate() {
-        requestAnimationFrame(animate);
-        cube.rotation.y += 0.01;
-        renderer.render(scene, camera);
-      }
-      animate();
-    </script>
-  </body>
+  <body></body>
 </html>
