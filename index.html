@@ -77,9 +77,14 @@
 
   <div id="log">Loading model...</div>
 
-  <script>
-    const viewer = document.getElementById('viewer');
-    const log = document.getElementById('log');
+ viewer.addEventListener('error', (e) => {
+  console.error('Model failed to load:', e);
+});
+
+viewer.addEventListener('load', () => {
+  console.log('✅ Model loaded!');
+});
+
 
     viewer.addEventListener('load', () => {
       log.textContent = '✅ Model loaded successfully!';
@@ -104,3 +109,4 @@
 
 </body>
 </html>
+
