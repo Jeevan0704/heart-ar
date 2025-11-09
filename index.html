@@ -1,73 +1,446 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Human Heart AR</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Human Heart — AR Experience</title>
 
-  <!-- Google Model Viewer -->
-  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+<!-- model-viewer (handles WebXR, Scene Viewer, Quick Look) -->
+<script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 
-  <style>
-    body {
-      margin: 0;
-      background: radial-gradient(circle, #111 60%, #000);
-      color: white;
-      font-family: "Segoe UI", sans-serif;
-      text-align: center;
-      overflow: hidden;
-    }
+<style>
+  :root{
+    --bg:#f6f8fb;
+    --card:#ffffff;
+    --muted:#9aa7b2;
+    --accent:#2b98ff;
+    --accent-2:#6ab0ff;
+    --glass: rgba(255,255,255,0.6);
+    --shadow: 0 8px 30px rgba(18,24,30,0.08);
+  }
+  html,body{height:100%;margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;}
+  body{
+    background: linear-gradient(180deg, #f7fbff 0%, #eef6ff 40%, #e9f2fb 100%);
+    color:#0b2a43;
+    -webkit-font-smoothing:antialiased;
+  }
 
-    h1 {
-      margin-top: 15px;
-      font-weight: 500;
-    }
+  /* centered app card */
+  .frame{
+    width:100%;
+    min-height:100%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:28px;
+    box-sizing:border-box;
+  }
 
-    model-viewer {
-      width: 100%;
-      height: 80vh;
-      background-color: #111;
-    }
+  .card{
+    width:100%;
+    max-width:980px;
+    border-radius:18px;
+    background:linear-gradient(180deg, rgba(255,255,255,0.95), rgba(250,252,255,0.9));
+    box-shadow:var(--shadow);
+    overflow:hidden;
+    backdrop-filter: blur(8px);
+  }
 
-    footer {
-      margin-top: 10px;
-      font-size: 14px;
-      opacity: 0.7;
-    }
+  header.appbar{
+    display:flex;
+    align-items:center;
+    gap:16px;
+    padding:18px 22px;
+    border-bottom: 1px solid rgba(16,32,48,0.04);
+  }
+  .brand {
+    display:flex;
+    gap:12px;
+    align-items:center;
+  }
+  .logo {
+    width:52px; height:52px; border-radius:10px;
+    background:linear-gradient(135deg,var(--accent),var(--accent-2));
+    display:flex;align-items:center;justify-content:center;color:white;font-weight:700;box-shadow:0 6px 18px rgba(43,152,255,0.18);
+    font-size:20px;
+  }
+  .title{
+    font-size:18px;font-weight:700;
+    color:#072433;
+  }
+  .subtitle{font-size:13px;color:var(--muted);margin-top:4px;}
 
-    #info {
-      position: absolute;
-      bottom: 15px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(0,0,0,0.6);
-      padding: 8px 12px;
-      border-radius: 6px;
-      font-size: 13px;
-      color: #fff;
-    }
-  </style>
+  /* main viewer area */
+  .viewer-wrap{
+    display:flex;
+    gap:20px;
+    padding:20px;
+    align-items:stretch;
+  }
+
+  model-viewer {
+    width:100%;
+    height:60vh;
+    border-radius:12px;
+    background:linear-gradient(180deg,#e9f4ff, #ffffff);
+    box-shadow: inset 0 -20px 40px rgba(16,32,48,0.02);
+    overflow:hidden;
+    display:block;
+  }
+
+  /* right-side panel */
+  .side {
+    width:300px;
+    min-width:230px;
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+    align-items:flex-start;
+  }
+  .panel{
+    width:100%;
+    background:var(--card);
+    border-radius:12px;
+    padding:12px;
+    box-shadow: var(--shadow);
+  }
+  .panel h3{margin:0 0 8px 0;font-size:14px;color:#072433;}
+  .fact{font-size:13px;color:#123;line-height:1.3;}
+  .btn {
+    display:inline-flex;align-items:center;gap:10px;
+    background:linear-gradient(90deg,var(--accent),var(--accent-2));
+    color:white;border:0;padding:10px 14px;border-radius:10px;font-weight:700;cursor:pointer;
+    box-shadow:0 8px 20px rgba(43,152,255,0.16);
+  }
+  .muted-btn { background:transparent;border:1px solid rgba(10,20,30,0.06); color:#06304a; padding:8px 12px; border-radius:10px; cursor:pointer; }
+
+  /* info popup */
+  #infoBox {
+    position: absolute;
+    left:50%;
+    transform: translateX(-50%);
+    bottom:36px;
+    background: rgba(255,255,255,0.96);
+    color:#072433;
+    padding:12px 18px;
+    border-radius:12px;
+    box-shadow: 0 10px 30px rgba(9,20,30,0.06);
+    display:none;
+    font-size:14px;
+    max-width:520px;
+    text-align:center;
+  }
+
+  /* loading overlay */
+  .loading-overlay{
+    position:fixed; inset:0; z-index:9999;
+    display:flex; align-items:center; justify-content:center;
+    background:linear-gradient(180deg, rgba(255,255,255,0.98), rgba(240,248,255,0.95));
+    transition:opacity .45s ease, visibility .45s;
+  }
+  .loading-inner{
+    width:min(720px,92%);
+    padding:28px;border-radius:14px; background:linear-gradient(180deg,#fff,#f6fbff);
+    box-shadow:0 20px 60px rgba(10,30,50,0.08); display:flex; gap:20px; align-items:center;
+  }
+  .loader-left{
+    width:200px;height:200px;border-radius:12px; display:flex;align-items:center;justify-content:center;
+    background:linear-gradient(135deg, rgba(43,152,255,0.08), rgba(106,182,255,0.05));
+    border:1px solid rgba(43,152,255,0.08);
+  }
+  .loader-left .pulse{
+    width:120px;height:120px;border-radius:999px;background:radial-gradient(circle at 30% 30%, rgba(43,152,255,0.35), rgba(43,152,255,0.06) 40%, transparent 60%);
+    display:flex;align-items:center;justify-content:center;font-size:18px;color:#064b76;font-weight:700;
+  }
+  .loader-right{flex:1;}
+  .progress {
+    width:100%; height:12px; background:#e9f3fb; border-radius:999px; overflow:hidden; margin-top:12px;
+  }
+  .bar { height:100%; width:0%; background: linear-gradient(90deg,var(--accent),var(--accent-2)); transition: width .25s linear; }
+  .percent { font-weight:700; color:#073044; margin-top:8px; }
+
+  /* small footer */
+  footer{padding:10px 18px;text-align:center;color:var(--muted);font-size:13px}
+  @media (max-width:880px){
+    .viewer-wrap{flex-direction:column}
+    .side{width:100%}
+    model-viewer{height:56vh}
+  }
+</style>
 </head>
-
 <body>
-  <h1>Human Heart AR Model</h1>
 
-  <model-viewer
-  src="https://drive.google.com/uc?export=download&id=1PivzVjFx_nuunzhT-rajr2SonWBzUWjM"
-  ios-src="heart-3d.usdz"
-  alt="3D Model of the Human Heart"
-  ar
-  ar-modes="scene-viewer quick-look webxr"
-  camera-controls
-  auto-rotate
-  shadow-intensity="1"
-  exposure="1.2"
-  autoplay
-  scale="0.01 0.01 0.01"
-></model-viewer>
+<div class="loading-overlay" id="loadingOverlay" aria-hidden="false">
+  <div class="loading-inner" role="status" aria-live="polite">
+    <div class="loader-left">
+      <div class="pulse">HEART AR</div>
+    </div>
+    <div class="loader-right">
+      <div style="font-size:18px;color:#053047;font-weight:700">Preparing immersive experience</div>
+      <div style="margin-top:8px;color:var(--muted)">Optimizing model, initializing AR systems & loading assets...</div>
 
-  <footer>Tap the cube icon to view the heart in AR</footer>
-  <div id="info">Works on Android & iPhone 📱</div>
+      <div class="progress" aria-hidden="true">
+        <div class="bar" id="loadBar"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;">
+        <div class="percent" id="loadPct">0%</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="muted-btn" id="muteBtn">Mute</button>
+          <button class="btn" id="skipBtn">Skip & Enter</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="frame">
+  <div class="card" role="main">
+    <header class="appbar">
+      <div class="brand">
+        <div class="logo">HR</div>
+        <div>
+          <div class="title">Human Heart • AR Lab</div>
+          <div class="subtitle">Medical • Interactive • Futuristic</div>
+        </div>
+      </div>
+
+      <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+        <button id="reloadBtn" class="muted-btn">Reload Model</button>
+        <button id="openAR" class="btn">View in AR</button>
+      </div>
+    </header>
+
+    <div class="viewer-wrap">
+      <model-viewer id="mv"
+        src="heart-3d.glb"
+        ios-src="heart-3d.usdz"
+        alt="3D human heart model"
+        ar
+        ar-modes="scene-viewer quick-look webxr"
+        camera-controls
+        auto-rotate
+        exposure="1.15"
+        shadow-intensity="1"
+        style="border-radius:12px;"
+      ></model-viewer>
+
+      <aside class="side">
+        <div class="panel">
+          <h3>Quick Facts</h3>
+          <div class="fact">• Beats ~100,000 times per day</div>
+          <div class="fact">• Pumps ~7,500 liters of blood daily</div>
+          <div class="fact">• Four chambers: two atria, two ventricles</div>
+        </div>
+
+        <div class="panel">
+          <h3>How to use</h3>
+          <div class="fact">1. Allow camera permission when asked (mobile)</div>
+          <div class="fact">2. Tap <strong>View in AR</strong> to place the heart in your space</div>
+          <div class="fact">3. On Android, use pinch to scale; on iOS use Quick Look controls</div>
+        </div>
+
+        <div class="panel">
+          <h3>Controls</h3>
+          <div style="display:flex;gap:8px;margin-top:6px">
+            <button class="btn" id="smallBtn">Small</button>
+            <button class="btn" id="medBtn">Medium</button>
+            <button class="btn" id="largeBtn">Large</button>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <div id="infoBox" role="status"></div>
+
+    <footer>Created by Jeevan • Educational AR demo</footer>
+  </div>
+</div>
+
+<script>
+/* ---------- Basic elements ---------- */
+const overlay = document.getElementById('loadingOverlay');
+const loadBar = document.getElementById('loadBar');
+const loadPct = document.getElementById('loadPct');
+const muteBtn = document.getElementById('muteBtn');
+const skipBtn = document.getElementById('skipBtn');
+const mv = document.getElementById('mv');
+const infoBox = document.getElementById('infoBox');
+const openAR = document.getElementById('openAR');
+const reloadBtn = document.getElementById('reloadBtn');
+
+/* ---------- Heartbeat audio via WebAudio ---------- */
+let audioCtx, gainNode, beatTimer;
+let muted = false;
+function initAudio(){
+  if(audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  gainNode = audioCtx.createGain();
+  gainNode.gain.value = 0.14; // gentle volume
+  gainNode.connect(audioCtx.destination);
+}
+function playHeartbeat(){
+  if(!audioCtx) initAudio();
+  if(muted) return;
+  // pattern: lub-dub (two pulses)
+  beatTimer = setInterval(()=> {
+    playPulse(0); // first strong
+    setTimeout(()=> playPulse(0.36), 220); // second softer
+  }, 1000);
+}
+function stopHeartbeat(){
+  if(beatTimer) { clearInterval(beatTimer); beatTimer = null; }
+}
+function playPulse(delay){
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.type = 'sine';
+  o.frequency.setValueAtTime(120, audioCtx.currentTime);
+  g.gain.value = 0;
+  o.connect(g);
+  g.connect(gainNode);
+  o.start(audioCtx.currentTime + delay);
+  g.gain.linearRampToValueAtTime(0.12, audioCtx.currentTime + delay + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + delay + 0.25);
+  o.stop(audioCtx.currentTime + delay + 0.28);
+}
+
+/* Mute toggle */
+muteBtn.onclick = () => {
+  muted = !muted;
+  muteBtn.textContent = muted ? 'Unmute' : 'Mute';
+  if(muted) stopHeartbeat(); else playHeartbeat();
+};
+
+/* Skip loading */
+skipBtn.onclick = () => {
+  hideOverlay();
+  stopHeartbeat();
+};
+
+/* ---------- Loading logic (runs every time model loads/reloads) ---------- */
+let fakePct = 0;
+let progressInterval;
+
+function showOverlayAndLoad() {
+  // Reset UI
+  overlay.style.visibility = 'visible';
+  overlay.style.opacity = '1';
+  loadBar.style.width = '0%';
+  loadPct.innerText = '0%';
+  fakePct = 0;
+
+  // Start heartbeat & audio (resume user gesture if needed)
+  try { initAudio(); if(!muted) { audioCtx.resume(); playHeartbeat(); } } catch(e){}
+
+  // Start a fallback incrementing progress (smooth UX) while real progress events arrive
+  clearInterval(progressInterval);
+  progressInterval = setInterval(()=>{
+    fakePct = Math.min(98, fakePct + Math.random()*6);
+    loadBar.style.width = fakePct + '%';
+    loadPct.innerText = Math.round(fakePct) + '%';
+  }, 300);
+}
+
+/* Hide overlay */
+function hideOverlay(){
+  overlay.style.opacity = '0';
+  overlay.style.visibility = 'hidden';
+}
+
+/* Wire model-viewer events */
+mv.addEventListener('progress', (e) => {
+  const p = Math.round(e.detail.totalProgress * 100);
+  loadBar.style.width = p + '%';
+  loadPct.innerText = p + '%';
+  if(p >= 99) {
+    // ensure bar fills
+    loadBar.style.width = '100%';
+    loadPct.innerText = '100%';
+  }
+});
+
+mv.addEventListener('load', (e) => {
+  // Model finished loading
+  clearInterval(progressInterval);
+  loadBar.style.width = '100%';
+  loadPct.innerText = '100%';
+  setTimeout(()=> {
+    hideOverlay();
+    stopHeartbeat();
+  }, 550);
+});
+
+mv.addEventListener('error', (e) => {
+  console.error('ModelViewer error:', e);
+  loadPct.innerText = 'Error';
+  stopHeartbeat();
+  setTimeout(()=> {
+    hideOverlay();
+    alert('Model failed to load. Check the console or try reloading the page.');
+  }, 600);
+});
+
+/* Show overlay on initial load and whenever reload is pressed */
+window.addEventListener('load', ()=> {
+  showOverlayAndLoad();
+});
+
+/* Reload model button (cache-bust to force re-download and show loader) */
+reloadBtn.onclick = () => {
+  showOverlayAndLoad();
+  // add timestamp to force reload
+  const src = mv.getAttribute('src').split('?')[0];
+  mv.setAttribute('src', src + '?t=' + Date.now());
+};
+
+/* Open AR button fires model-viewer's activation */
+openAR.onclick = () => {
+  // For iOS this will open Quick Look, for Android it will try Scene Viewer/WebXR
+  try {
+    mv.enterAR ? mv.enterAR() : mv.activateAR();
+  } catch(e) {
+    mv.activateAR();
+  }
+};
+
+/* Size quick controls (affects model-viewer scale only; AR viewer uses baked scale) */
+document.getElementById('smallBtn').onclick = ()=> { mv.setAttribute('scale','0.02 0.02 0.02'); };
+document.getElementById('medBtn').onclick = ()=> { mv.setAttribute('scale','0.06 0.06 0.06'); };
+document.getElementById('largeBtn').onclick = ()=> { mv.setAttribute('scale','0.12 0.12 0.12'); };
+
+/* Click on model shows info and speaks */
+mv.addEventListener('click', ()=> {
+  const facts = [
+    "The heart beats about one hundred thousand times each day.",
+    "It pumps nearly seven thousand five hundred litres of blood every day.",
+    "The heart has four chambers: two atria and two ventricles.",
+    "A healthy heart keeps oxygen flowing throughout the body."
+  ];
+  const fact = facts[Math.floor(Math.random()*facts.length)];
+  infoBox.textContent = fact;
+  infoBox.style.display = 'block';
+  // speak
+  if('speechSynthesis' in window) {
+    const u = new SpeechSynthesisUtterance(fact);
+    u.rate = 1; u.pitch = 1;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(u);
+  }
+  // hide after 4s
+  setTimeout(()=> infoBox.style.display = 'none', 4000);
+});
+
+/* Start heartbeat when overlay visible (and user interacted) */
+overlay.addEventListener('click', ()=> {
+  // resume audio (user gesture)
+  try { if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); } catch(e){}
+});
+
+/* Ensure autoplay permission issues handled: attempt resume on first user touch */
+document.addEventListener('click', ()=> {
+  try { if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); } catch(e){}
+});
+</script>
+
 </body>
 </html>
-
