@@ -129,5 +129,99 @@
       });
     </script>
   </body>
+</html>
 
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Inline AR Preview – Human Heart</title>
+    <script
+      type="module"
+      src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"
+    ></script>
+    <style>
+      body {
+        margin: 0;
+        background: #111;
+        color: white;
+        font-family: system-ui, sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+      }
+      model-viewer {
+        width: 100%;
+        height: 80vh;
+        background-color: #000;
+      }
+      button {
+        margin-top: 20px;
+        background: #0f9d58;
+        border: none;
+        color: white;
+        font-size: 18px;
+        padding: 12px 24px;
+        border-radius: 8px;
+        cursor: pointer;
+      }
+      button:disabled {
+        background: #444;
+        cursor: not-allowed;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>Human Heart 3D AR (Inline Preview)</h2>
+    <model-viewer
+      id="viewer"
+      src="heart-3d.glb"
+      ios-src="heart-3d.usdz"
+      alt="Human Heart Model"
+      ar
+      ar-modes="webxr"
+      camera-controls
+      auto-rotate
+      shadow-intensity="1"
+      exposure="1.3"
+      environment-image="neutral"
+    ></model-viewer>
+
+    <button id="startAR">Start AR (Camera View)</button>
+
+    <script>
+      const viewer = document.getElementById("viewer");
+      const startARButton = document.getElementById("startAR");
+      async function checkARSupport() {
+        try {
+          const supported = await viewer.canActivateAR;
+          if (supported) {
+            startARButton.disabled = false;
+          } else {
+            startARButton.textContent = "AR not supported on this device";
+            startARButton.disabled = true;
+          }
+        } catch (err) {
+          console.warn("AR check failed:", err);
+          startARButton.textContent = "AR not supported";
+          startARButton.disabled = true;
+        }
+      }
+      startARButton.addEventListener("click", async () => {
+        try {
+          await viewer.activateAR();
+        } catch (err) {
+          console.error("AR activation failed:", err);
+          alert(
+            "Failed to start AR. Make sure you're on HTTPS and your device supports WebXR."
+          );
+        }
+      });
+      checkARSupport();
+    </script>
+  </body>
 </html>
