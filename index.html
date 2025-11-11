@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AR Human Heart</title>
+
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Poppins:wght@400;600&display=swap');
 
@@ -16,12 +17,11 @@
       overflow: hidden;
     }
 
+    /* Animated Background */
     .background {
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
       background: radial-gradient(circle at center, #001b3a, #000814);
       overflow: hidden;
       z-index: -1;
@@ -35,58 +35,37 @@
     }
 
     @keyframes float {
-      from {
-        transform: translateY(100vh) scale(0.5);
-        opacity: 0;
-      }
-      50% {
-        opacity: 1;
-      }
-      to {
-        transform: translateY(-10vh) scale(1.2);
-        opacity: 0;
-      }
+      from { transform: translateY(100vh) scale(0.5); opacity: 0; }
+      50% { opacity: 1; }
+      to { transform: translateY(-10vh) scale(1.2); opacity: 0; }
     }
 
     .pulse {
       position: absolute;
-      width: 400px;
-      height: 400px;
+      width: 400px; height: 400px;
       border: 2px solid #00baff88;
       border-radius: 50%;
-      top: 50%;
-      left: 50%;
+      top: 50%; left: 50%;
       transform: translate(-50%, -50%);
       animation: pulseWave 3s infinite ease-in-out;
     }
 
     @keyframes pulseWave {
-      0% {
-        transform: translate(-50%, -50%) scale(0.9);
-        opacity: 0.6;
-      }
-      50% {
-        transform: translate(-50%, -50%) scale(1.2);
-        opacity: 0.2;
-      }
-      100% {
-        transform: translate(-50%, -50%) scale(0.9);
-        opacity: 0.6;
-      }
+      0% { transform: translate(-50%, -50%) scale(0.9); opacity: 0.6; }
+      50% { transform: translate(-50%, -50%) scale(1.2); opacity: 0.2; }
+      100% { transform: translate(-50%, -50%) scale(0.9); opacity: 0.6; }
     }
 
+    /* Loader */
     #loader {
       position: fixed;
-      width: 100%;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      width: 100%; height: 100%;
+      display: flex; align-items: center; justify-content: center;
       flex-direction: column;
       z-index: 10;
       color: white;
-      transition: opacity 1s ease;
       background: rgba(0, 0, 0, 0.9);
+      transition: opacity 1s ease;
     }
 
     .glow-text {
@@ -98,8 +77,7 @@
     }
 
     #progress-bar {
-      width: 60%;
-      height: 10px;
+      width: 60%; height: 10px;
       background: rgba(255,255,255,0.15);
       border-radius: 20px;
       overflow: hidden;
@@ -108,8 +86,7 @@
     }
 
     #progress {
-      height: 100%;
-      width: 0%;
+      height: 100%; width: 0%;
       background: linear-gradient(90deg, #00e5ff, #007bff, #00e5ff);
       background-size: 300% 100%;
       animation: shimmer 2s infinite linear;
@@ -128,9 +105,10 @@
       margin-top: 10px;
     }
 
+    /* Main Page */
     .container {
       opacity: 0;
-      transition: opacity 1.2s ease;
+      transition: opacity 1s ease;
     }
 
     h1 {
@@ -141,9 +119,19 @@
       text-shadow: 0 0 10px #2196f3;
     }
 
-    .ar-buttons {
-      margin-top: 50px;
+    .heart-img {
+      width: 230px;
+      margin-top: 40px;
+      filter: drop-shadow(0 5px 25px rgba(0, 150, 255, 0.4));
+      animation: beat 1.5s infinite ease-in-out;
     }
+
+    @keyframes beat {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    .ar-buttons { margin-top: 30px; }
 
     .ar-button {
       display: inline-block;
@@ -156,7 +144,7 @@
       font-family: "Orbitron", sans-serif;
       box-shadow: 0 0 20px rgba(0,150,255,0.4);
       transition: all 0.3s ease;
-      margin: 0 10px;
+      margin: 10px;
     }
 
     .ar-button:hover {
@@ -166,7 +154,7 @@
 
     p {
       font-size: 1rem;
-      margin-top: 30px;
+      margin-top: 15px;
       color: #b3e5fc;
     }
   </style>
@@ -176,21 +164,32 @@
     <div class="pulse"></div>
   </div>
 
+  <!-- Loader -->
   <div id="loader">
     <div class="glow-text">Initializing AR Interface...</div>
     <div id="progress-bar"><div id="progress"></div></div>
     <p id="percent">0%</p>
   </div>
 
+  <!-- Main Content -->
   <div class="container" id="main-content">
     <h1>Explore the Human Heart in AR</h1>
+    <img class="heart-img" src="https://upload.wikimedia.org/wikipedia/commons/8/8b/Human_heart_anterior_external_view.jpg" alt="Human Heart">
+    
     <div class="ar-buttons">
-      <a href="https://drive.google.com/uc?export=download&id=1PivzVjFx_nuunzhT-rajr2SonWBzUWjM" rel="ar" class="ar-button">View in AR (iPhone)</a>
-      <a href="intent://arvr.google.com/scene-viewer/1.0?file=https://drive.google.com/uc?export=download&id=1PivzVjFx_nuunzhT-rajr2SonWBzUWjM#Intent;scheme=https;package=com.google.android.googlequicksearchbox;action=android.intent.action.VIEW;end;" class="ar-button">View in AR (Android)</a>
+      <!-- iPhone (USDZ) -->
+      <a href="heart-3d.usdz" rel="ar" class="ar-button">View in AR (iPhone)</a>
+
+      <!-- Android (GLB via Google Drive) -->
+      <a href="intent://arvr.google.com/scene-viewer/1.0?file=https://drive.google.com/uc?export=download&id=1PivzVjFx_nuunzhT-rajr2SonWBzUWjM#Intent;scheme=https;package=com.google.android.googlequicksearchbox;action=android.intent.action.VIEW;end;" class="ar-button">
+        View in AR (Android)
+      </a>
     </div>
+
     <p>Project a realistic 3D beating heart right into your surroundings.</p>
   </div>
 
+  <!-- Background heartbeat sound -->
   <audio autoplay loop>
     <source src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_1aef3a9b15.mp3?filename=heartbeat-loop-11067.mp3" type="audio/mpeg">
   </audio>
