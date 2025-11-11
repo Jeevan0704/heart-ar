@@ -1,222 +1,235 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Human Heart — AR Experience</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Poppins:wght@400;600&display=swap');
-  :root{
-    --bg1:#eaf3ff; --bg2:#cfd8e8; --accent1:#00baff; --accent2:#007bff;
-  }
-  html,body{height:100%;margin:0;font-family:Poppins,system-ui,Segoe UI,Roboto,Arial}
-  body{
-    background: radial-gradient(circle at top, var(--bg1), var(--bg2));
-    color:#062033; display:flex; align-items:center; justify-content:center;
-    overflow:hidden;
-  }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AR Human Heart</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Poppins:wght@400;600&display=swap');
 
-  /* loader overlay */
-  #loader {
-    position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
-    background:linear-gradient(180deg, rgba(0,10,20,0.92), rgba(0,6,12,0.9));
-    z-index:9999; flex-direction:column; gap:14px; color:white;
-  }
-  .glow{font-family:Orbitron,system-ui;font-weight:700;color:var(--accent1); text-shadow:0 0 12px rgba(0,186,255,.18); letter-spacing:1px}
-  .progress-wrap{width:min(820px,92%); background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.02)); padding:22px; border-radius:14px; display:flex; gap:18px; align-items:center}
-  .pulse-box{width:160px;height:160px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg, rgba(0,186,255,0.06), rgba(106,182,255,0.03)); border:1px solid rgba(0,186,255,0.06)}
-  .pulse-inner{width:100px;height:100px;border-radius:50%;background:radial-gradient(circle at 30% 30%, rgba(0,186,255,0.22), transparent 50%);display:flex;align-items:center;justify-content:center;font-weight:700;color:#053047}
-  .progress {flex:1}
-  .bar-bg{height:12px;background:#0b2534; border-radius:999px; overflow:hidden; box-shadow:0 8px 30px rgba(2,6,12,.3)}
-  .bar{height:100%; width:0%; background:linear-gradient(90deg,var(--accent1),var(--accent2)); transition:width .25s linear}
-  .pct{font-family:Orbitron,monospace;color:var(--accent1); margin-left:10px; font-weight:700}
+    body {
+      margin: 0;
+      font-family: "Poppins", sans-serif;
+      background: radial-gradient(circle at top, #eaf3ff, #cfd8e8);
+      color: #0a1f44;
+      text-align: center;
+      overflow: hidden;
+    }
 
-  /* main content */
-  .card{width:100%;max-width:980px;border-radius:16px;padding:18px;background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(250,252,255,.96)); box-shadow:0 10px 40px rgba(6,16,28,0.08); display:flex; flex-direction:column; gap:12px}
-  header{display:flex;align-items:center;gap:12px}
-  .logo{width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,var(--accent1),var(--accent2));display:flex;align-items:center;justify-content:center;color:white;font-weight:800}
-  h1{margin:0;font-size:1.2rem;color:#042"}
-  .preview{width:260px;height:260px;margin:8px auto;background:center/contain no-repeat; filter:drop-shadow(0 12px 30px rgba(0,110,200,0.12))}
-  .buttons{display:flex;gap:12px;justify-content:center;margin-top:6px}
-  .arbtn{background:linear-gradient(90deg,var(--accent2),var(--accent1)); color:white;border:0;padding:12px 20px;border-radius:999px;font-weight:700;cursor:pointer;box-shadow:0 10px 28px rgba(0,120,200,.12)}
-  .secondary{background:transparent;border:1px solid rgba(2,10,20,0.06);color:#042;padding:10px 16px;border-radius:10px;cursor:pointer}
-  footer{margin-top:10px;text-align:center;color:#6b7c8d;font-size:13px}
+    .background {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle at center, #001b3a, #000814);
+      overflow: hidden;
+      z-index: -1;
+    }
 
-  @media (max-width:760px){
-    .progress-wrap{flex-direction:column;align-items:center}
-    .pulse-box{width:120px;height:120px}
-    .preview{width:200px;height:200px}
-  }
-</style>
+    .particle {
+      position: absolute;
+      background: rgba(0, 170, 255, 0.8);
+      border-radius: 50%;
+      animation: float 10s linear infinite;
+    }
+
+    @keyframes float {
+      from {
+        transform: translateY(100vh) scale(0.5);
+        opacity: 0;
+      }
+      50% {
+        opacity: 1;
+      }
+      to {
+        transform: translateY(-10vh) scale(1.2);
+        opacity: 0;
+      }
+    }
+
+    .pulse {
+      position: absolute;
+      width: 400px;
+      height: 400px;
+      border: 2px solid #00baff88;
+      border-radius: 50%;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      animation: pulseWave 3s infinite ease-in-out;
+    }
+
+    @keyframes pulseWave {
+      0% {
+        transform: translate(-50%, -50%) scale(0.9);
+        opacity: 0.6;
+      }
+      50% {
+        transform: translate(-50%, -50%) scale(1.2);
+        opacity: 0.2;
+      }
+      100% {
+        transform: translate(-50%, -50%) scale(0.9);
+        opacity: 0.6;
+      }
+    }
+
+    #loader {
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      z-index: 10;
+      color: white;
+      transition: opacity 1s ease;
+      background: rgba(0, 0, 0, 0.9);
+    }
+
+    .glow-text {
+      font-family: "Orbitron", sans-serif;
+      font-size: 1.5rem;
+      letter-spacing: 2px;
+      color: #00baff;
+      text-shadow: 0 0 10px #00baff, 0 0 20px #00baff;
+    }
+
+    #progress-bar {
+      width: 60%;
+      height: 10px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 20px;
+      overflow: hidden;
+      margin-top: 20px;
+      box-shadow: 0 0 10px #00baff44;
+    }
+
+    #progress {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #00e5ff, #007bff, #00e5ff);
+      background-size: 300% 100%;
+      animation: shimmer 2s infinite linear;
+      box-shadow: 0 0 20px #00baff;
+    }
+
+    @keyframes shimmer {
+      0% { background-position: 0% 0%; }
+      100% { background-position: 300% 0%; }
+    }
+
+    #percent {
+      font-family: "Orbitron", sans-serif;
+      font-size: 1.2rem;
+      color: #00e5ff;
+      margin-top: 10px;
+    }
+
+    .container {
+      opacity: 0;
+      transition: opacity 1.2s ease;
+    }
+
+    h1 {
+      font-size: 2rem;
+      color: #e3f2fd;
+      margin-top: 30px;
+      letter-spacing: 1px;
+      text-shadow: 0 0 10px #2196f3;
+    }
+
+    .ar-buttons {
+      margin-top: 50px;
+    }
+
+    .ar-button {
+      display: inline-block;
+      background: linear-gradient(90deg, #2196f3, #0d47a1);
+      color: white;
+      padding: 14px 28px;
+      border-radius: 50px;
+      text-decoration: none;
+      font-weight: 600;
+      font-family: "Orbitron", sans-serif;
+      box-shadow: 0 0 20px rgba(0,150,255,0.4);
+      transition: all 0.3s ease;
+      margin: 0 10px;
+    }
+
+    .ar-button:hover {
+      transform: scale(1.07);
+      box-shadow: 0 0 25px rgba(0,200,255,0.6);
+    }
+
+    p {
+      font-size: 1rem;
+      margin-top: 30px;
+      color: #b3e5fc;
+    }
+  </style>
 </head>
 <body>
-
-<!-- LOADER (shows every model load / reload) -->
-<div id="loader" aria-hidden="false">
-  <div style="display:flex;flex-direction:column;align-items:center;gap:12px">
-    <div class="glow">INITIALIZING HEART AR</div>
-    <div style="color:#9fd6ff;font-size:13px">Preparing model & AR systems — please allow camera when prompted</div>
+  <div class="background">
+    <div class="pulse"></div>
   </div>
 
-  <div class="progress-wrap" role="status" aria-live="polite">
-    <div class="pulse-box"><div class="pulse-inner">HEART</div></div>
-    <div class="progress">
-      <div class="bar-bg"><div class="bar" id="bar"></div></div>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
-        <div style="font-size:13px;color:#bfe9ff">Loading assets</div>
-        <div class="pct" id="pct">0%</div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- MAIN CARD -->
-<div class="card" id="mainCard" style="opacity:0;transition:opacity .8s ease">
-  <header>
-    <div class="logo">HR</div>
-    <div>
-      <div style="font-weight:800;color:#052a42">Human Heart • AR Lab</div>
-      <div style="font-size:12px;color:#577089;margin-top:3px">Medical • Interactive • Futuristic</div>
-    </div>
-  </header>
-
-  <!-- preview image (fallback to wiki if heart-preview.png not present) -->
-  <div id="preview" class="preview" style="background-image:url('https://raw.githubusercontent.com/Jeevan0704/heart-ar/main/heart-preview.png');"></div>
-
-  <div style="text-align:center">
-    <div class="buttons">
-      <button id="openAR" class="arbtn">View in AR</button>
-      <button id="reloadBtn" class="secondary">Reload / Test</button>
-    </div>
-    <div style="margin-top:8px;color:#375a78">Tap <strong>View in AR</strong> — allow camera when asked.</div>
+  <div id="loader">
+    <div class="glow-text">Initializing AR Interface...</div>
+    <div id="progress-bar"><div id="progress"></div></div>
+    <p id="percent">0%</p>
   </div>
 
-  <footer>Created by Jeevan · Educational AR demo</footer>
-</div>
+  <div class="container" id="main-content">
+    <h1>Explore the Human Heart in AR</h1>
+    <div class="ar-buttons">
+      <a href="https://drive.google.com/uc?export=download&id=1PivzVjFx_nuunzhT-rajr2SonWBzUWjM" rel="ar" class="ar-button">View in AR (iPhone)</a>
+      <a href="intent://arvr.google.com/scene-viewer/1.0?file=https://drive.google.com/uc?export=download&id=1PivzVjFx_nuunzhT-rajr2SonWBzUWjM#Intent;scheme=https;package=com.google.android.googlequicksearchbox;action=android.intent.action.VIEW;end;" class="ar-button">View in AR (Android)</a>
+    </div>
+    <p>Project a realistic 3D beating heart right into your surroundings.</p>
+  </div>
 
-<!-- heartbeat audio (starts after loader completes) -->
-<audio id="hb" loop preload="auto">
-  <source src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_1aef3a9b15.mp3?filename=heartbeat-loop-11067.mp3" type="audio/mpeg">
-</audio>
+  <audio autoplay loop>
+    <source src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_1aef3a9b15.mp3?filename=heartbeat-loop-11067.mp3" type="audio/mpeg">
+  </audio>
 
-<script>
-/* ---------- Configuration (edit filenames/IDs here if needed) ---------- */
-const GITHUB_RAW_GLb = "https://raw.githubusercontent.com/Jeevan0704/heart-ar/main/heart-3d.glb";
-const GITHUB_RAW_USDZ = "https://raw.githubusercontent.com/Jeevan0704/heart-ar/main/heart-3d.usdz";
-const DRIVE_GLb_FALLBACK = "https://drive.google.com/uc?export=download&id=1PivzVjFx_nuunzhT-rajr2SonWBzUWjM";
+  <script>
+    // Floating particles
+    const bg = document.querySelector('.background');
+    for (let i = 0; i < 25; i++) {
+      const particle = document.createElement('div');
+      particle.classList.add('particle');
+      const size = Math.random() * 6 + 2;
+      particle.style.width = `${size}px`;
+      particle.style.height = `${size}px`;
+      particle.style.left = `${Math.random() * 100}%`;
+      particle.style.animationDuration = `${6 + Math.random() * 6}s`;
+      bg.appendChild(particle);
+    }
 
-/* ---------- UI elements ---------- */
-const loader = document.getElementById('loader');
-const bar = document.getElementById('bar');
-const pct = document.getElementById('pct');
-const mainCard = document.getElementById('mainCard');
-const openAR = document.getElementById('openAR');
-const reloadBtn = document.getElementById('reloadBtn');
-const hb = document.getElementById('hb');
-const preview = document.getElementById('preview');
+    // Loader animation
+    let progress = 0;
+    const progressBar = document.getElementById('progress');
+    const percentText = document.getElementById('percent');
+    const loader = document.getElementById('loader');
+    const mainContent = document.getElementById('main-content');
 
-/* if preview image is missing (404), fallback to wiki image */
-fetch(preview.style.backgroundImage.slice(5,-2)).then(r=>{
-  if(!r.ok) preview.style.backgroundImage = "url('https://upload.wikimedia.org/wikipedia/commons/8/8b/Human_heart_anterior_external_view.jpg')";
-}).catch(()=>{ preview.style.backgroundImage = "url('https://upload.wikimedia.org/wikipedia/commons/8/8b/Human_heart_anterior_external_view.jpg')"; });
-
-/* ---------- loader animation (runs each load) ---------- */
-function startLoader() {
-  loader.style.display = "flex";
-  loader.style.opacity = "1";
-  bar.style.width = "0%";
-  pct.textContent = "0%";
-  let fake = 0;
-  return new Promise(resolve=>{
-    const t = setInterval(()=>{
-      fake = Math.min(95, fake + Math.random()*7 + 2);
-      bar.style.width = fake + "%";
-      pct.textContent = Math.floor(fake) + "%";
-    }, 260);
-
-    // resolve will be called when real load completes or on timeout
-    resolve._done = ()=>{ clearInterval(t); bar.style.width = "100%"; pct.textContent = "100%"; setTimeout(()=>{ loader.style.opacity='0'; setTimeout(()=>loader.style.display='none',600); mainCard.style.opacity='1'; try{ hb.play().catch(()=>{}); }catch(e){} }, 500); };
-  });
-}
-
-/* ---------- availability check for GitHub raw GLB ---------- */
-async function checkUrl(headUrl, timeout = 5000) {
-  try {
-    const controller = new AbortController();
-    const id = setTimeout(()=> controller.abort(), timeout);
-    const res = await fetch(headUrl, { method: 'HEAD', signal: controller.signal, cache: 'no-store' });
-    clearTimeout(id);
-    return res.ok;
-  } catch (e) {
-    return false;
-  }
-}
-
-/* ---------- determine best GLB url (github raw preferred, drive fallback) ---------- */
-async function getBestGlbUrl() {
-  // try GitHub raw first
-  const ok = await checkUrl(GITHUB_RAW_GLb, 4500);
-  if(ok) return GITHUB_RAW_GLb;
-  // else fallback to Drive
-  const okDrive = await checkUrl(DRIVE_GLb_FALLBACK, 6000);
-  if(okDrive) return DRIVE_GLb_FALLBACK;
-  return null;
-}
-
-/* ---------- Open AR flow (Android Scene Viewer or iOS Quick Look) ---------- */
-async function openARFlow() {
-  // show loader again each time user taps (model reload behavior you wanted)
-  const loaderPromise = startLoader();
-
-  const bestGlb = await getBestGlbUrl();
-  // mark loader done visually (real fetchs done)
-  if(!bestGlb) {
-    loaderPromise._done();
-    alert("Failed to find a usable model URL (both GitHub raw and Drive checks failed). Try again later.");
-    return;
-  }
-
-  // finish loader UI
-  loaderPromise._done();
-
-  // Decide platform
-  const ua = navigator.userAgent || "";
-  const isIOS = /iPhone|iPad|iPod/i.test(ua);
-  const isAndroid = /Android/i.test(ua);
-
-  if(isIOS) {
-    // iOS: open USDZ directly (Quick Look)
-    // use GitHub Pages URL for quick look (must be https to a .usdz)
-    window.location.href = GITHUB_RAW_USDZ;
-    return;
-  }
-
-  // Android: open Scene Viewer using the chosen glb url
-  // Build intent URL (Scene Viewer)
-  const sceneFile = encodeURIComponent(bestGlb);
-  const intent = `intent://arvr.google.com/scene-viewer/1.0?file=${sceneFile}#Intent;scheme=https;package=com.google.android.googlequicksearchbox;action=android.intent.action.VIEW;end;`;
-  // open
-  window.location.href = intent;
-}
-
-/* ---------- initial run: show loader and prepare (simulate model loading step) ---------- */
-(async function init(){
-  // start loader and attempt to warm-check GitHub (so first tap is faster)
-  const lp = startLoader();
-  // do a background check (don't wait too long)
-  const best = await getBestGlbUrl();
-  // finish loader visually
-  lp._done();
-  // if none found, show warning on page but still allow user to tap
-  if(!best) {
-    alert("Warning: public model URLs weren't reachable during startup. The AR button will try Drive as a fallback when tapped.");
-  }
-})();
-
-/* ---------- UI events ---------- */
-openAR.onclick = ()=> openARFlow();
-reloadBtn.onclick = ()=> openARFlow();
-
-</script>
+    const interval = setInterval(() => {
+      progress += Math.random() * 10;
+      if (progress >= 100) {
+        progress = 100;
+        clearInterval(interval);
+        loader.style.opacity = "0";
+        setTimeout(() => {
+          loader.style.display = "none";
+          mainContent.style.opacity = "1";
+        }, 1000);
+      }
+      progressBar.style.width = progress + "%";
+      percentText.innerText = Math.floor(progress) + "%";
+    }, 180);
+  </script>
 </body>
 </html>
